@@ -4,6 +4,7 @@ node_modules
 
 /generated/prisma
 
-/gcp-sa-key.json
-
-./gcp-sa-key.json
+# GCP Service Account Keys
+gcp-sa-key.json
+*.json.key
+*-key.json
