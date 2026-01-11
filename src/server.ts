@@ -10,7 +10,10 @@ app.get('/', (_ : Request, res : Response) => {
 
 app.get('/users', async (_ : Request, res : Response) => {
   const users = await prisma.user.findMany()
-  res.json(users)
+  res.json({
+     data : users,
+     message : 'Users fetched successfully',
+  })
 })
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
