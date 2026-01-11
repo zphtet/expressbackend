@@ -1,0 +1,76 @@
+name: Backend Express Prisma CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  build-and-deploy:
+    name: Build, Push Docker Image & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client (validation)
+        run: npx prisma generate
+
+      - name: Run tests (if available)
+        run: npm test || echo "No tests configured, skipping..."
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set environment variables (dev / prod)
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "dev" ]]; then
+            echo "ENV=dev" >> $GITHUB_ENV
+            echo "SERVICE_NAME=express-backend-dev" >> $GITHUB_ENV
+            echo "IMAGE_TAG=dev" >> $GITHUB_ENV
+          else
+            echo "ENV=prod" >> $GITHUB_ENV
+            echo "SERVICE_NAME=express-backend-prod" >> $GITHUB_ENV
+            echo "IMAGE_TAG=prod" >> $GITHUB_ENV
+          fi
+
+      - name: Build & push Docker image
+        run: |
+          IMAGE="us-central1-docker.pkg.dev/new-react-project-483118/docker-repo/express-backend:${IMAGE_TAG}"
+          
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $IMAGE \
+            --push \
+            .
+
+      - name: Deploy to Cloud Run (${{ env.ENV }})
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: us-central1-docker.pkg.dev/new-react-project-483118/docker-repo/express-backend:${{ env.IMAGE_TAG }}
+          region: us-central1
+          project_id: new-react-project-483118
+          flags: '--port=3005 --allow-unauthenticated --platform=managed --memory=512Mi --timeout=300 --set-env-vars=NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }}'

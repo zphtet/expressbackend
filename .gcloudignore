@@ -1,0 +1,14 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore
+
+node_modules/
+.env
+.env.*
+*.log
+.git/
+.gitignore
+README*.md
+.vscode/
+.idea/
+.DS_Store
+run-container.sh
