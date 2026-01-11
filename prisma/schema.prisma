@@ -30,3 +30,8 @@ model Post {
   authorId  Int
 }
 
+model Book {
+  id        Int     @id @default(autoincrement())
+  title     String
+  published Boolean @default(false)
+}
