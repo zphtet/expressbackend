@@ -5,7 +5,7 @@ const app = express()
 const port = process.env.PORT || 3005
 
 app.get('/', (_ : Request, res : Response) => {
-  res.send('Hello World! this is the test project for express backend deployment')
+  res.send('Hello World! this is the main route')
 })
 
 app.get('/users', async (_ : Request, res : Response) => {
